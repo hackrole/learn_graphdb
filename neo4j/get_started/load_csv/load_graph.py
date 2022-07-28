@@ -1,5 +1,6 @@
 import pickle
 import gzip
+import glob
 from itertools import islice
 from functools import reduce
 from typing import Any, List, Dict
@@ -40,7 +41,7 @@ def merge_ref(g: Graph, fname: str):
     data = pickle_load(fname)
 
     def iter_data():
-        for key, value in tqdm(data.items()):
+        for key, value in data.items():
             for item in value:
                 if 'dest_lni' not in item:
                     print(f"dest_lni not found in {item}")
@@ -61,13 +62,12 @@ def merge_ref(g: Graph, fname: str):
     lg = reduce(lambda x, y: x + 1, iter_data(), 0)
     it = iter_data()
     page_size = 1000
-    while True:
-        for _i in tqdm(range(lg // page_size)):
-            chunks = list(islice(it, page_size))
-            if not chunks:
-                return
+    for _i in tqdm(range(lg // page_size)):
+        chunks = list(islice(it, page_size))
+        if not chunks:
+            return
 
-            merge_relationships(g.auto(), chunks, "REF", start_node_key=("Paper", "ID"), end_node_key=("Paper", "ID"))
+        merge_relationships(g.auto(), chunks, "REF", start_node_key=("Case", "ID"), end_node_key=("Case", "ID"))
 
 
 def create_csv(fname: str):
@@ -93,7 +93,6 @@ def merge_paper_nodes(g: Graph, fname: str):
         for key, value in data.items():
             yield {**value, "ID": key, "title": str(value["title"])}
 
-    count = 0
     # for key, value in islice(data.items(), 200):
     #     for i, ii in value.items():
     #         if ii is None:
@@ -111,27 +110,38 @@ def merge_paper_nodes(g: Graph, fname: str):
 
     it = iter_data()
     page_size = 1000
-    while True:
-        for i in tqdm(range(lg // page_size)):
-            chunks = list(islice(it, page_size))
-            if not chunks:
-                return
+    for i in tqdm(range(lg // page_size)):
+        chunks = list(islice(it, page_size))
+        if not chunks:
+            return
 
-            merge_nodes(g.auto(), chunks, ("Paper", "ID"))
+        merge_nodes(g.auto(), chunks, ("Case", "ID"))
 
 
 @click.command()
 @click.option("--uri", default="bolt://127.0.0.1:7687")
 @click.option("--user", default="neo4j")
 @click.option("--pwd", default="test")
-@click.option("--fname")
-def cli(uri, user, pwd, fname):
+@click.option("--dirname")
+def cli(uri, user, pwd, dirname):
     # import pdb;pdb.set_trace()
     neo_conn = get_neo4j_conn(uri, user, pwd)
 
     # create_csv(fname)
-    # merge_paper_nodes(neo_conn, fname)
-    merge_ref(neo_conn, fname)
+
+    # create index for paper:ID if not exists
+    tx = neo_conn.begin()
+    tx.run("create constraint uniqCaseIDConstraint if not exists for (c:Case) require c.ID is unique")
+    tx.commit()
+
+    # create node
+    node_glob = glob.glob(f"{dirname}/*_metadata.pkl*")
+    for fname in node_glob:
+        merge_paper_nodes(neo_conn, fname)
+
+    rel_glob = glob.glob(f"{dirname}/*_cite.pkl*")
+    for fname in rel_glob:
+        merge_ref(neo_conn, fname)
 
 
 if __name__ == "__main__":
