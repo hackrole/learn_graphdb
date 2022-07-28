@@ -70,18 +70,75 @@ def merge_ref(g: Graph, fname: str):
         merge_relationships(g.auto(), chunks, "REF", start_node_key=("Case", "ID"), end_node_key=("Case", "ID"))
 
 
-def create_csv(fname: str):
+def to_csv(data, fname):
     output = fname + ".csv"
 
+    df = pd.DataFrame(data)
+    df.to_csv(output, index=False)
+
+    return output
+
+
+def get_ref_loadcsv(fname: str):
+    return (
+        "using periodic commit 500 "
+        f'load csv with headers from "f{fname} as csvLine '
+        'match (c1:Case {ID: csvLine.src_ID}), (c2:Case {ID: csvLine.dst_ID}) '
+        'merge (c1)-[:REF]-(c2) '
+        'create (c1)-[:REF {is_in_headnote: toBoolean(csvLine.is_in_headnote), '
+        'is_in_footnote: toBoolean(csvLine.is_in_footnote), '
+        'is_in_overview: toBoolean(csvLine.is_in_overview), '
+        'is_in_rfc: toBoolean(csvLine.is_in_rfc), '
+        'is_in_opinion: toBoolean(csvLine.is_in_opinion), '
+        'count: toInteger(csvLine.count)}]-(c2)'
+    )
+
+def get_node_load_csv(fname: str):
+    return (
+        'using periodic commit 500 '
+        f'load csv with headers from "f{fname}" as csvLine '
+        'merge (c:Case {ID: csvLine.ID}) '
+        'create (c:Case {ID: csvLine.ID, title: csvLine.title, '
+        'court_name: csvLine.court_name, '
+        'jurisinfo_system_code: csvLine.jurisinfo_system_code, '
+        'decision_date: csvLine.decision_date})'
+    )
+
+def transfer_ref_csv(fname: str):
+    data = pickle_load(fname)
+
+    def iter_data():
+        for key, value in data.items():
+            for item in value:
+                if 'dest_lni' not in item:
+                    print(f"dest_lni not found in {item}")
+                    continue
+
+                dest_lni = item["dest_lni"]
+
+                keys = [("is_in_headnote", bool),
+                        ("is_in_footnote", bool),
+                        ("is_in_overview", bool),
+                        ("is_in_rfc", bool),
+                        ("is_in_opinion", bool),
+                        ("count", int)]
+                property = dict(get_value_by_key(item, k, h) for k, h in keys)
+                property["src_ID"] = key
+                property["dst_ID"] = dest_lni
+
+                yield property
+
+    return to_csv(iter_data(), fname)
+
+
+def transfer_node_csv(fname: str):
     data = pickle_load(fname)
 
     def iter_data():
         for key, value in data.items():
             yield {**value, "ID": key, "title": str(value["title"])}
 
-    df = pd.DataFrame(iter_data())
-    df.to_csv(output, index=False)
-    return output
+    return to_csv(iter_data(), fname)
 
 
 def merge_paper_nodes(g: Graph, fname: str):
