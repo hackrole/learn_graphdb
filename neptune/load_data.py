@@ -108,9 +108,9 @@ def to_csv(data, output):
 
 def main(basedir: str):
 
-    node_fs = glob(f"{basedir}/part_*_metadata.*")
+    node_fs = glob.glob(f"{basedir}/part_*_metadata.*")
     to_node_csv(node_fs, "nodes.csv")
 
 
-    edge_fs = glob(f"{basedir}/part_*_cite.*")
+    edge_fs = glob.glob(f"{basedir}/part_*_cite.*")
     to_edge_csv(edge_fs, "edges.csv")
