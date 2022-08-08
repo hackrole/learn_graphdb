@@ -66,15 +66,14 @@ def to_node_csv(fnames: List[str], result_fname: str = "result.csv"):
     def get_nodes():
         for fname in fnames:
             nodes = pickle_load(fname)
-            import pdb;pdb.set_trace()
             for key, value in nodes.items():
                 yield {
                     ":ID": key,
                     ":LABEL": "Case",
-                    "title": value["title"],
-                    "court_name": value["court_name"],
-                    "jurisinfo_system_code": value["jurisinfo_system_code"],
-                    "decision_date": value["decision_date"],
+                    "title:String": value["title"],
+                    "court_name:String": value["court_name"],
+                    "jurisinfo_system_code:String": value["jurisinfo_system_code"],
+                    "decision_date:DateTime": value["decision_date"],
                 }
 
     nodes = get_nodes()
@@ -83,7 +82,6 @@ def to_node_csv(fnames: List[str], result_fname: str = "result.csv"):
 
 def to_edge_csv(fnames: List[str], result_fname: str = "edges.csv"):
     def get_edges():
-        import pdb;pdb.set_trace()
         for fname in fnames:
             edges = pickle_load(fname)
             for key, value in edges.items():
@@ -93,11 +91,11 @@ def to_edge_csv(fnames: List[str], result_fname: str = "edges.csv"):
                         ":START_ID": key,
                         ":END_ID": item["dest_lni"],
                         ":TYPE": "REF",
-                        "is_in_headnote": item["is_in_headnote"],
-                        "is_in_overview": item["is_in_overview"],
-                        "is_in_footnote": item["is_in_footnote"],
-                        "is_in_rfc": item["is_in_rfc"],
-                        "is_in_opinion": item["is_in_opinion"],
+                        "is_in_headnote:Bool": item["is_in_headnote"],
+                        "is_in_overview:Bool": item["is_in_overview"],
+                        "is_in_footnote:Bool": item["is_in_footnote"],
+                        "is_in_rfc:Bool": item["is_in_rfc"],
+                        "is_in_opinion:Bool": item["is_in_opinion"],
                     }
 
     edges = get_edges()
@@ -106,3 +104,13 @@ def to_edge_csv(fnames: List[str], result_fname: str = "edges.csv"):
 def to_csv(data, output):
     df = pd.DataFrame(data)
     df.to_csv(output, index=False)
+
+
+def main(basedir: str):
+
+    node_fs = glob(f"{basedir}/part_*_metadata.*")
+    to_node_csv(node_fs, "nodes.csv")
+
+
+    edge_fs = glob(f"{basedir}/part_*_cite.*")
+    to_edge_csv(edge_fs, "edges.csv")
