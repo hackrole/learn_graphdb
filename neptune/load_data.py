@@ -101,6 +101,38 @@ def to_edge_csv(fnames: List[str], result_fname: str = "edges.csv"):
     edges = get_edges()
     return to_csv(edges, result_fname)
 
+
+def to_id_node_csv(fnames: List[str], result_fname: str = "easy_result.csv"):
+    def get_nodes():
+        for fname in fnames:
+            nodes = pickle_load(fname)
+            for key, value in nodes.items():
+                yield {
+                    ":ID": key,
+                    ":LABEL": "Case",
+                }
+
+    nodes = get_nodes()
+    return to_csv(nodes, result_fname)
+
+
+
+def to_id_edge_csv(fname: List[str], result_fname: str = "easy_edges.csv"):
+    def get_edges():
+        for fname in fnames:
+            edges = pickle_load(fname)
+            for key, value in edges.items():
+                for item in value:
+                    yield {
+                        ":ID": f"{key}-{item['dest_lni']}",
+                        ":START_ID": key,
+                        ":END_ID": item["dest_lni"],
+                        ":TYPE": "REF",
+                    }
+
+    edges = get_edges()
+    return to_csv(edges, result_fname)
+
 def to_csv(data, output):
     df = pd.DataFrame(data)
     df.to_csv(output, index=False)
