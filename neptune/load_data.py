@@ -117,7 +117,7 @@ def to_id_node_csv(fnames: List[str], result_fname: str = "easy_result.csv"):
 
 
 
-def to_id_edge_csv(fname: List[str], result_fname: str = "easy_edges.csv"):
+def to_id_edge_csv(fnames: List[str], result_fname: str = "easy_edges.csv"):
     def get_edges():
         for fname in fnames:
             edges = pickle_load(fname)
