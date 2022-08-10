@@ -141,11 +141,13 @@ def to_csv(data, output):
 def main(basedir: str):
 
     node_fs = glob.glob(f"{basedir}/part_*_metadata.*")
-    to_node_csv(node_fs, "nodes.csv")
+    # to_node_csv(node_fs, "nodes.csv")
+    to_id_node_csv(node_fs)
 
 
     edge_fs = glob.glob(f"{basedir}/part_*_cite.*")
-    to_edge_csv(edge_fs, "edges.csv")
+    # to_edge_csv(edge_fs, "edges.csv")
+    to_id_edge_csv(edge_fs)
 
 
 """
